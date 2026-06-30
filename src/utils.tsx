@@ -34,6 +34,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export const useTheme = () => useContext(ThemeCtx);
 
+// Chuẩn hóa version string để so sánh nhất quán, không phụ thuộc có/không có tiền tố "v" (VD: "v2.2.9" === "2.2.9")
+export const normalizeVersion = (version: string) => (version || '').trim().replace(/^v/i, '');
+
 /* ─────────────────────────────────────────
    2. GLASS & COLOR HELPERS
 ───────────────────────────────────────── */

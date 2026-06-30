@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 // Import từ file Utils
-import { ThemeProvider, useTheme, BgFx, ThemeToggle, glassPanel, textMuted, textSecondary } from './utils';
+import { ThemeProvider, useTheme, BgFx, ThemeToggle, glassPanel, textMuted, textSecondary, normalizeVersion } from './utils';
 import auroraLogo from './assets/aurora-logo.png';
 // Import các Components
 import AuthScreen from './components/AuthScreen';
@@ -227,8 +227,8 @@ function AppShell({ onLogout, userName, userRole }) {
           .single();
           
         if (data) {
-          // Hàm so sánh version đơn giản (VD: 2.2.0 > 2.1.0)
-          setHasAppUpdate(data.version !== currentVersion);
+          // So sánh version sau khi chuẩn hóa, không phụ thuộc tiền tố "v"
+          setHasAppUpdate(normalizeVersion(data.version) !== normalizeVersion(currentVersion));
           // Bạn có thể lưu data.download_url và release_notes vào state để hiện ở SettingsTab
         }
       } catch (err) {

@@ -5,7 +5,7 @@ import {
   Settings, Bell, BellOff, Info, Moon, Sun, Send, Power,
   RefreshCw, CheckCircle2, DownloadCloud, Loader2
 } from 'lucide-react';
-import { useTheme, glassPanel, textPrimary, textSecondary, textMuted } from '../utils';
+import { useTheme, glassPanel, textPrimary, textSecondary, textMuted, normalizeVersion } from '../utils';
 import { invoke } from '@tauri-apps/api/core'; // Chuẩn Tauri v2
 import { supabase } from '../supabase';
 import { getVersion } from '@tauri-apps/api/app';
@@ -141,9 +141,9 @@ export default function SettingsTab({ hasUpdate, setHasUpdate }) {
 
         if (data) {
           const fetchedVersion = data.version.startsWith('v') ? data.version : `v${data.version}`;
-          
-          // So sánh version từ Supabase với version thật của App
-          if (fetchedVersion !== formattedCurrentVer) {
+
+          // So sánh version đã chuẩn hóa (không phụ thuộc tiền tố "v"), formattedCurrentVer/fetchedVersion chỉ dùng để hiển thị
+          if (normalizeVersion(data.version) !== normalizeVersion(appVer)) {
             setHasUpdate(true);
             setUpdateInfo({
               latestVersion: fetchedVersion,
