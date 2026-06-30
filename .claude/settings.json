@@ -1,0 +1,7 @@
+{
+  "effortLevel": "medium",
+  "statusLine": {
+    "type": "command",
+    "command": "\"G:\\\\OneDrive\\\\tauri-app\\\\.claude\\\\foza-statusline.sh\""
+  }
+}
