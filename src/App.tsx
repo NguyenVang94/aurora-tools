@@ -228,10 +228,8 @@ function AppShell({ onLogout, userName, userRole }) {
           
         if (data) {
           // Hàm so sánh version đơn giản (VD: 2.2.0 > 2.1.0)
-          if (data.version !== currentVersion) {
-            setHasAppUpdate(true);
-            // Bạn có thể lưu data.download_url và release_notes vào state để hiện ở SettingsTab
-          }
+          setHasAppUpdate(data.version !== currentVersion);
+          // Bạn có thể lưu data.download_url và release_notes vào state để hiện ở SettingsTab
         }
       } catch (err) {
         console.error("Lỗi check update:", err);
@@ -244,7 +242,7 @@ function AppShell({ onLogout, userName, userRole }) {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // STATE LƯU TRẠNG THÁI UPDATE
-  const [hasAppUpdate, setHasAppUpdate] = useState(true); // Tạm để true để test UI
+  const [hasAppUpdate, setHasAppUpdate] = useState(false);
 
   const finalNavItems = [...NAV_ITEMS];
   if (userRole === 'admin') {
@@ -290,12 +288,18 @@ function AppShell({ onLogout, userName, userRole }) {
         userName={userName}
         userRole={userRole}
             />
-        <main className="flex-1 overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }} className="h-full">
-              <TabComponent />
-            </motion.div>
-          </AnimatePresence>
+        <main className="flex-1 overflow-hidden relative">
+          {/* Dashboard luôn giữ mounted để tool/process đang chạy không bị mất trạng thái khi đổi tab */}
+          <div className={`h-full ${activeTab === 'dashboard' ? '' : 'hidden'}`}>
+            <DashboardTab />
+          </div>
+          {activeTab !== 'dashboard' && (
+            <AnimatePresence mode="wait">
+              <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }} className="h-full">
+                <TabComponent />
+              </motion.div>
+            </AnimatePresence>
+          )}
         </main>
       </div>
     </div>

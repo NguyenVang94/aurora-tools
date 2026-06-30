@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useTheme, glassPanel, textPrimary, textSecondary } from '../utils';
 import { open } from '@tauri-apps/plugin-dialog';
+import { open as openUrl } from '@tauri-apps/plugin-shell';
 
 export default function ConsultingCustomScreen({ tool, logs, onBack, onToggle, onClearLogs }) {
   const { isDark } = useTheme();
@@ -70,11 +71,11 @@ export default function ConsultingCustomScreen({ tool, logs, onBack, onToggle, o
     }
   };
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
     setIsDownloadingTemplate(true);
     try {
       const downloadUrl = 'https://github.com/NguyenVang94/aurora-tools/releases/download/Consultingtemple/Consulting.xlsx';
-      window.open(downloadUrl, '_blank');
+      await openUrl(downloadUrl);
     } catch (error) {
       console.error("Lỗi khi tải file mẫu:", error);
       alert("Không thể tải file mẫu. Vui lòng thử lại!");

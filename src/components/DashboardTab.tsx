@@ -406,6 +406,9 @@ export default function DashboardTab() {
       }
     };
     fetchWeather();
+    // Tự động làm mới thời tiết mỗi 30 phút để dữ liệu không bị cũ khi app mở cả ngày
+    const intervalId = setInterval(fetchWeather, 30 * 60 * 1000);
+    return () => clearInterval(intervalId);
   }, []);
 
   // HÀM CHUYỂN ĐỔI MÃ THỜI TIẾT SANG ICON & TIẾNG VIỆT
@@ -413,7 +416,7 @@ export default function DashboardTab() {
     if (code === 0) return { label: 'Trời quang đãng', icon: Sun, color: 'text-amber-400' };
     if ([1, 2, 3].includes(code)) return { label: 'Nhiều mây', icon: Cloud, color: 'text-sky-400' };
     if ([45, 48].includes(code)) return { label: 'Sương mù', icon: CloudFog, color: 'text-slate-400' };
-    if ([51, 53, 55, 61, 63, 65].includes(code)) return { label: 'Có mưa', icon: CloudRain, color: 'text-blue-400' };
+    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return { label: 'Có mưa', icon: CloudRain, color: 'text-blue-400' };
     if ([95, 96, 99].includes(code)) return { label: 'Mưa dông', icon: CloudLightning, color: 'text-indigo-400' };
     return { label: 'Có mây', icon: Cloud, color: 'text-sky-400' };
   };
@@ -754,7 +757,7 @@ export default function DashboardTab() {
           {/* LỚP HIỆU ỨNG (Z-Index 0 để nằm dưới chữ) */}
           {weather && (
             <>
-              {[51, 53, 55, 61, 63, 65, 95, 96, 99].includes(weather.current.weather_code) && <RainEffect />}
+              {[51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99].includes(weather.current.weather_code) && <RainEffect />}
               {[1, 2, 3, 45, 48].includes(weather.current.weather_code) && <CloudEffect />}
               {weather.current.weather_code === 0 && <SunEffect />}
             </>
