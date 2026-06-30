@@ -50,11 +50,16 @@ async fn download_and_install_update(app: AppHandle, url: String) -> Result<Stri
 
         let exe_path = dest_path.to_str().unwrap();
 
-        // Lệnh PowerShell: Ngủ 2 giây -> Chạy file cài đặt với cờ /S
+        // Đường dẫn app đang chạy, dùng để mở lại sau khi cài xong (NSIS cài đè vào đúng vị trí cũ)
+        let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
+        let current_exe_path = current_exe.to_string_lossy().replace("'", "''");
+
+        // Lệnh PowerShell: Ngủ 2 giây -> Chạy file cài đặt với cờ /S và CHỜ cài xong (-Wait) -> Mở lại app
         // Sử dụng LiteralPath và escape dấu nháy đơn để chống mọi lỗi đường dẫn dị biệt
         let ps_command = format!(
-            "Start-Sleep -Seconds 2; Start-Process -LiteralPath '{}' -ArgumentList '/S'",
-            exe_path.replace("'", "''")
+            "Start-Sleep -Seconds 2; Start-Process -LiteralPath '{}' -ArgumentList '/S' -Wait; Start-Sleep -Seconds 1; Start-Process -LiteralPath '{}'",
+            exe_path.replace("'", "''"),
+            current_exe_path
         );
 
         std::process::Command::new("powershell")
