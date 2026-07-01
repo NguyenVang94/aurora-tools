@@ -43,6 +43,18 @@ async fn download_and_install_update(app: AppHandle, url: String) -> Result<Stri
     }
     drop(file);
 
+    // 3b. Kiểm tra file tải về có hợp lệ không trước khi cài (tránh cài file rỗng/lỗi
+    // do mạng đứt giữa chừng, rồi mới đóng app - nếu không sẽ mất dấu vết lỗi vì
+    // app đã thoát, không còn ai báo cho người dùng biết).
+    let actual_size = std::fs::metadata(&dest_path).map_err(|e| e.to_string())?.len();
+    if actual_size < 1_000_000 || (total_size > 0 && actual_size != total_size) {
+        let _ = std::fs::remove_file(&dest_path);
+        return Err(format!(
+            "File cài đặt tải về không đầy đủ ({} bytes). Vui lòng thử lại.",
+            actual_size
+        ));
+    }
+
     // 4. Chạy file cài đặt
     #[cfg(target_os = "windows")]
     {
@@ -54,17 +66,19 @@ async fn download_and_install_update(app: AppHandle, url: String) -> Result<Stri
         let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
         let current_exe_path = current_exe.to_string_lossy().replace("'", "''");
 
-        // Lệnh PowerShell: Ngủ 2 giây -> Chạy file cài đặt với cờ /S và CHỜ cài xong (-Wait) -> Mở lại app
-        // Sử dụng LiteralPath và escape dấu nháy đơn để chống mọi lỗi đường dẫn dị biệt
+        // Lệnh PowerShell: Ngủ 2 giây -> Chạy file cài đặt ở chế độ passive (/P, có thanh tiến
+        // trình nhỏ thay vì im lặng tuyệt đối /S) rồi tự mở lại app (/R). Trước đây dùng /S +
+        // cửa sổ ẩn hoàn toàn khiến mọi lỗi cài đặt (VD: SmartScreen chặn exe lạ chạy ngầm)
+        // biến mất không dấu vết vì app đã tự thoát - trông giống app bị crash.
         let ps_command = format!(
-            "Start-Sleep -Seconds 2; Start-Process -LiteralPath '{}' -ArgumentList '/S' -Wait; Start-Sleep -Seconds 1; Start-Process -LiteralPath '{}'",
+            "Start-Sleep -Seconds 2; Start-Process -LiteralPath '{}' -ArgumentList '/P','/R' -Wait; Start-Sleep -Seconds 1; if (-not (Get-Process -Name Aurora -ErrorAction SilentlyContinue)) {{ Start-Process -LiteralPath '{}' }}",
             exe_path.replace("'", "''"),
             current_exe_path
         );
 
         std::process::Command::new("powershell")
-            .args(["-WindowStyle", "Hidden", "-Command", &ps_command])
-            .creation_flags(0x08000000) // CREATE_NO_WINDOW: Chạy ngầm hoàn toàn
+            .args(["-Command", &ps_command])
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW: chỉ ẩn cửa sổ powershell, không ẩn installer
             .spawn()
             .map_err(|e| format!("Lỗi gọi PowerShell: {}", e))?;
     }
