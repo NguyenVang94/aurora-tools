@@ -9,6 +9,7 @@ import XCustomScreen from './XCustomScreen';
 import ConsultingCustomScreen from './ConsultingCustomScreen';
 import TWCustomScreen from './TWCustomScreen';
 import KiwamiCustomScreen from './KiwamiCustomScreen';
+import XUploadCustomScreen from './XUploadCustomScreen';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import React, { useState, useMemo, useEffect } from 'react';
@@ -700,6 +701,17 @@ export default function DashboardTab() {
           tool={activeTool} logs={allLogs} 
           onBack={() => setSelectedToolId(null)} onToggle={toggleTool} 
           onClearLogs={(taskId) => setAllLogs(prev => ({ ...prev, [taskId]: '' }))} 
+        />
+      );
+    }
+    if (activeTool.uiType === 'x_upload_gui') {
+      return (
+        <XUploadCustomScreen
+          tool={activeTool}
+          logs={allLogs}
+          onBack={() => setSelectedToolId(null)}
+          onToggle={toggleTool}
+          onClearLogs={(taskId) => setAllLogs(prev => ({ ...prev, [taskId]: '' }))}
         />
       );
     }
