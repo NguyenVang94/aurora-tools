@@ -98,25 +98,42 @@ async fn download_tool(
     let file_name = format!("{}.exe", tool_id);
     let file_path = tools_dir.join(&file_name);
 
-    // 4. Bắt đầu tải file từ URL
-    let response = reqwest::get(&download_url)
+    // 4. Bắt đầu tải file từ URL, đọc theo từng đoạn nhỏ để báo % tiến độ
+    let mut response = reqwest::get(&download_url)
         .await
         .map_err(|e| format!("Lỗi tải xuống từ URL: {}", e))?;
 
-    // 5. Đọc dữ liệu và ghi vào file .exe
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| format!("Lỗi đọc dữ liệu: {}", e))?;
+    let total_size = response.content_length().unwrap_or(0);
     let mut file = File::create(&file_path)
         .await
         .map_err(|e| format!("Lỗi tạo file exe: {}", e))?;
+    let mut downloaded: u64 = 0;
 
-    file.write_all(&bytes)
+    while let Some(chunk) = response
+        .chunk()
         .await
-        .map_err(|e| format!("Lỗi lưu file exe: {}", e))?;
+        .map_err(|e| format!("Lỗi đọc dữ liệu: {}", e))?
+    {
+        file.write_all(&chunk)
+            .await
+            .map_err(|e| format!("Lỗi lưu file exe: {}", e))?;
 
-    // 6. Trả về đường dẫn tuyệt đối của file exe cho Frontend để nó dùng lệnh invoke chạy file
+        downloaded += chunk.len() as u64;
+
+        if total_size > 0 {
+            let percentage = (downloaded as f64 / total_size as f64) * 100.0;
+            app.emit(
+                "tool-download-progress",
+                ToolDownloadProgress {
+                    tool_id: tool_id.clone(),
+                    percentage: percentage as u8,
+                },
+            )
+            .ok();
+        }
+    }
+
+    // 5. Trả về đường dẫn tuyệt đối của file exe cho Frontend để nó dùng lệnh invoke chạy file
     Ok(file_path.to_string_lossy().to_string())
 }
 
@@ -132,6 +149,12 @@ struct AppState {
 struct LogPayload {
     task_id: String,
     message: String,
+}
+
+#[derive(Clone, serde::Serialize)]
+struct ToolDownloadProgress {
+    tool_id: String,
+    percentage: u8,
 }
 
 #[tauri::command]

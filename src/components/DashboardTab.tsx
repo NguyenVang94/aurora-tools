@@ -128,7 +128,7 @@ function StatCard({ icon: Icon, label, value, color, delay = 0 }) {
 // =====================================================================
 // COMPONENT TOOL CARD GỐC (Chỉ chứa UI, không chứa logic kéo thả)
 // =====================================================================
-const ToolCardContent = React.forwardRef(({ tool, index, onClick, onToggle, isDownloading, isCustomizing, isDraggingOverlay = false, dragListeners, dragAttributes, setActivatorNodeRef }, ref) => {
+const ToolCardContent = React.forwardRef(({ tool, index, onClick, onToggle, isDownloading, downloadProgress = 0, isCustomizing, isDraggingOverlay = false, dragListeners, dragAttributes, setActivatorNodeRef }, ref) => {
   const { isDark } = useTheme();
   
   const [hovered, setHovered] = useState(false);
@@ -303,12 +303,21 @@ const ToolCardContent = React.forwardRef(({ tool, index, onClick, onToggle, isDo
               : running ? (isDark ? 'bg-white/[0.06] text-white/60 border-white/[0.08] hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400' : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-red-50 hover:border-red-300 hover:text-red-500') 
               : (isDark ? 'bg-gradient-to-b from-cyan-500/20 to-cyan-500/10 text-cyan-400 border-cyan-400/25 hover:border-cyan-400/50' : 'bg-gradient-to-b from-sky-500 to-sky-600 text-white border-sky-600/20 shadow-sm hover:shadow-md hover:from-sky-400 hover:to-sky-500')}`}
           >
-            {isDownloading ? <><Loader2 className="w-3 h-3 animate-spin" /><span>Đang tải...</span></>
+            {isDownloading ? <><Loader2 className="w-3 h-3 animate-spin" /><span>Đang tải... {downloadProgress}%</span></>
               : needsDownload ? <><Download className="w-3 h-3" /><span>Cập nhật</span></>
-              : running ? <><Square className="w-3 h-3" /><span>Dừng</span></> 
+              : running ? <><Square className="w-3 h-3" /><span>Dừng</span></>
               : <><Play className="w-3 h-3" /><span>Khởi chạy</span></>}
           </motion.button>
         </div>
+
+        {isDownloading && (
+          <div className={`mt-2 h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}>
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${isDark ? 'bg-cyan-400' : 'bg-sky-500'}`}
+              style={{ width: `${downloadProgress}%` }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -352,6 +361,7 @@ export default function DashboardTab() {
   const [search, setSearch] = useState('');
   const [selectedToolId, setSelectedToolId] = useState(null);
   const [downloadingTools, setDownloadingTools] = useState({});
+  const [toolDownloadProgress, setToolDownloadProgress] = useState({});
   const [tools, setTools] = useState([]);
   const [allLogs, setAllLogs] = useState({});
   const [todayTasks, setTodayTasks] = useState([]); 
@@ -365,10 +375,13 @@ export default function DashboardTab() {
   // STATE LƯU DỮ LIỆU THỜI TIẾT
   const [weather, setWeather] = useState(null);
   // Thay thế forecast17h bằng mảng dự báo theo giờ
-  const [hourlyForecast, setHourlyForecast] = useState([]); 
+  const [hourlyForecast, setHourlyForecast] = useState([]);
+  const [weatherError, setWeatherError] = useState(false);
+  const [weatherRetryKey, setWeatherRetryKey] = useState(0);
 
   useEffect(() => {
     const fetchWeather = async () => {
+      setWeatherError(false);
       try {
         const lat = 10.7828; // Hồ Con Rùa, Quận 3
         const lon = 106.6959;
@@ -404,13 +417,14 @@ export default function DashboardTab() {
 
       } catch (error) {
         console.error("Lỗi tải thời tiết", error);
+        setWeatherError(true);
       }
     };
     fetchWeather();
     // Tự động làm mới thời tiết mỗi 30 phút để dữ liệu không bị cũ khi app mở cả ngày
     const intervalId = setInterval(fetchWeather, 30 * 60 * 1000);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [weatherRetryKey]);
 
   // HÀM CHUYỂN ĐỔI MÃ THỜI TIẾT SANG ICON & TIẾNG VIỆT
   const getWeatherDetails = (code) => {
@@ -449,6 +463,14 @@ export default function DashboardTab() {
     const unlisten = listen('python-log', (event) => {
       const { task_id, message } = event.payload;
       setAllLogs(prev => ({ ...prev, [task_id]: (prev[task_id] || '') + message }));
+    });
+    return () => { unlisten.then(f => f()); };
+  }, []);
+
+  useEffect(() => {
+    const unlisten = listen('tool-download-progress', (event) => {
+      const { tool_id, percentage } = event.payload;
+      setToolDownloadProgress(prev => ({ ...prev, [tool_id]: percentage }));
     });
     return () => { unlisten.then(f => f()); };
   }, []);
@@ -500,7 +522,7 @@ export default function DashboardTab() {
         }
         // Nếu đã có quyền -> Bắn thông báo
         if (permissionGranted) {
-          sendNotification({ title, body });
+          await sendNotification({ title, body });
         }
       } catch (err) {
         console.error("Lỗi khi gửi thông báo:", err);
@@ -524,6 +546,7 @@ export default function DashboardTab() {
 
     if (needsDownload) {
       setDownloadingTools(prev => ({ ...prev, [toolId]: true }));
+      setToolDownloadProgress(prev => ({ ...prev, [toolId]: 0 }));
       try {
         // GỌI RUST ĐỂ TẢI FILE!
         const downloadedPath = await invoke('download_tool', { 
@@ -822,6 +845,16 @@ export default function DashboardTab() {
                 </div>
               </div>
             </>
+          ) : weatherError ? (
+            <div className="w-full flex items-center justify-center gap-3">
+              <span className={`text-sm font-medium ${textMuted(isDark)}`}>Không tải được thời tiết. Kiểm tra kết nối mạng.</span>
+              <button
+                onClick={() => setWeatherRetryKey(k => k + 1)}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white/70' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'}`}
+              >
+                Thử lại
+              </button>
+            </div>
           ) : (
             <div className="w-full flex items-center justify-center gap-3">
               <Loader2 className="w-5 h-5 animate-spin text-sky-500" />
@@ -884,7 +917,8 @@ export default function DashboardTab() {
                   key={tool.id} 
                   tool={tool} 
                   isDownloading={downloadingTools[tool.id]}
-                  onClick={() => setSelectedToolId(tool.id)} 
+                  downloadProgress={toolDownloadProgress[tool.id] || 0}
+                  onClick={() => setSelectedToolId(tool.id)}
                   onToggle={toggleTool}
                   isCustomizing={isCustomizing}
                 />

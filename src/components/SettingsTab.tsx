@@ -85,7 +85,7 @@ export default function SettingsTab({ hasUpdate, setHasUpdate }) {
         granted = permission === 'granted';
       }
       if (granted) {
-        sendNotification({ title: "Aurora Automation", body: "Đây là thông báo thử nghiệm. Nếu bạn thấy nó, thông báo hệ thống đang hoạt động tốt!" });
+        await sendNotification({ title: "Aurora Automation", body: "Đây là thông báo thử nghiệm. Nếu bạn thấy nó, thông báo hệ thống đang hoạt động tốt!" });
       } else {
         alert("Windows chưa cấp quyền thông báo cho Aurora. Vui lòng vào Settings > Notifications của Windows để bật.");
       }
