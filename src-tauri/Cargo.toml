@@ -1,6 +1,6 @@
 [package]
 name = "Aurora"
-version = "2.2.13"
+version = "2.2.14"
 description = "Aurora App"
 authors = ["Nguyen"]
 edition = "2021"
