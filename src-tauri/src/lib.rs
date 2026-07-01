@@ -55,38 +55,55 @@ async fn download_and_install_update(app: AppHandle, url: String) -> Result<Stri
         ));
     }
 
-    // 4. Chạy file cài đặt
+    // 4. Chạy file cài đặt - gọi trực tiếp installer.exe từ Rust, KHÔNG qua PowerShell
+    // trung gian. Chuỗi tiến trình "Aurora -> PowerShell ẩn -> installer.exe lạ" rất giống
+    // hành vi mã độc thường gặp, nên phần mềm bảo mật/Defender trên nhiều máy công ty âm
+    // thầm chặn/kill cả chuỗi mà không báo lỗi gì - App tự thoát trước đó nên trông như crash
+    // và bản cập nhật không bao giờ thực sự được cài. Gọi thẳng installer.exe (một tiến trình
+    // cha-con bình thường, giống mọi app tự cập nhật khác) đáng tin cậy hơn nhiều.
     #[cfg(target_os = "windows")]
     {
-        use std::os::windows::process::CommandExt;
-
-        let exe_path = dest_path.to_str().unwrap();
-
-        // Đường dẫn app đang chạy, dùng để mở lại sau khi cài xong (NSIS cài đè vào đúng vị trí cũ)
         let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
-        let current_exe_path = current_exe.to_string_lossy().replace("'", "''");
 
-        // Lệnh PowerShell: Ngủ 2 giây -> Chạy file cài đặt ở chế độ passive (/P, có thanh tiến
-        // trình nhỏ thay vì im lặng tuyệt đối /S) rồi tự mở lại app (/R). Trước đây dùng /S +
-        // cửa sổ ẩn hoàn toàn khiến mọi lỗi cài đặt (VD: SmartScreen chặn exe lạ chạy ngầm)
-        // biến mất không dấu vết vì app đã tự thoát - trông giống app bị crash.
-        let ps_command = format!(
-            "Start-Sleep -Seconds 2; Start-Process -LiteralPath '{}' -ArgumentList '/P','/R' -Wait; Start-Sleep -Seconds 1; if (-not (Get-Process -Name Aurora -ErrorAction SilentlyContinue)) {{ Start-Process -LiteralPath '{}' }}",
-            exe_path.replace("'", "''"),
-            current_exe_path
-        );
+        // Đợi 1.5s trên một thread nền để Aurora hiện tại kịp giải phóng file trước khi
+        // installer cố ghi đè, rồi mới chạy installer ở chế độ passive (/P, có thanh tiến
+        // trình nhỏ thay vì im lặng tuyệt đối) và tự mở lại app (/R).
+        let install_path = dest_path.clone();
+        thread::spawn(move || {
+            thread::sleep(std::time::Duration::from_millis(1500));
+            let _ = Command::new(&install_path).args(["/P", "/R"]).spawn();
+        });
 
-        std::process::Command::new("powershell")
-            .args(["-Command", &ps_command])
-            .creation_flags(0x08000000) // CREATE_NO_WINDOW: chỉ ẩn cửa sổ powershell, không ẩn installer
-            .spawn()
-            .map_err(|e| format!("Lỗi gọi PowerShell: {}", e))?;
+        // Dự phòng: nếu vì lý do gì đó app không tự mở lại được (VD: /R thất bại), tự mở
+        // lại sau một khoảng đủ để cài xong.
+        thread::spawn(move || {
+            thread::sleep(std::time::Duration::from_secs(15));
+            if !is_process_running("Aurora.exe") {
+                let _ = Command::new(&current_exe).spawn();
+            }
+        });
     }
 
     // 5. Thoát app ngay lập tức để trả tự do cho file Aurora.exe
     app.exit(0);
 
     Ok("Đang cập nhật...".to_string())
+}
+
+#[cfg(target_os = "windows")]
+fn is_process_running(image_name: &str) -> bool {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    Command::new("tasklist")
+        .args(["/FI", &format!("IMAGENAME eq {}", image_name), "/NH"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()
+        .map(|out| {
+            String::from_utf8_lossy(&out.stdout)
+                .to_lowercase()
+                .contains(&image_name.to_lowercase())
+        })
+        .unwrap_or(false)
 }
 
 // Lệnh này nhận ID của tool và URL tải xuống từ React

@@ -39,7 +39,7 @@ import {
   Search, Package, Activity, CircleOff, Zap, Play, Square, 
   ExternalLink, ChevronLeft, FolderOpen, Terminal, 
   Calendar, CheckCircle2, Clock, ListTodo, Download, Loader2,
-  Settings2, GripHorizontal, Save, X, Cloud, CloudRain, CloudLightning, Sun, CloudFog, Droplets, Wind, ThermometerSun, MapPin
+  Settings2, GripHorizontal, Save, X, Cloud, CloudRain, CloudLightning, Sun, CloudFog, Droplets, Wind, ThermometerSun, MapPin, RefreshCw
 } from 'lucide-react';
 
 
@@ -421,8 +421,9 @@ export default function DashboardTab() {
       }
     };
     fetchWeather();
-    // Tự động làm mới thời tiết mỗi 30 phút để dữ liệu không bị cũ khi app mở cả ngày
-    const intervalId = setInterval(fetchWeather, 30 * 60 * 1000);
+    // Tự động làm mới thời tiết mỗi 10 phút - rút ngắn từ 30 phút vì mưa rào ở
+    // TP.HCM có thể đến/tan rất nhanh, 30 phút khiến dữ liệu hiển thị bị trễ.
+    const intervalId = setInterval(fetchWeather, 10 * 60 * 1000);
     return () => clearInterval(intervalId);
   }, [weatherRetryKey]);
 
@@ -805,6 +806,13 @@ export default function DashboardTab() {
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin className={`w-4 h-4 ${isDark ? 'text-sky-400' : 'text-sky-500'}`} />
                   <span className={`text-[12px] font-bold uppercase tracking-[0.1em] ${textPrimary(isDark)}`}>Hồ Con Rùa, Quận 3</span>
+                  <button
+                    onClick={() => setWeatherRetryKey(k => k + 1)}
+                    title="Làm mới thời tiết"
+                    className={`p-1 rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-white/40 hover:text-sky-400' : 'hover:bg-black/5 text-slate-400 hover:text-sky-500'}`}
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                  </button>
                 </div>
                 
                 <div className="flex items-center gap-4">
