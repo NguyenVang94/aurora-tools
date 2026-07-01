@@ -477,33 +477,50 @@ export default function DashboardTab() {
   }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchTasks = async () => {
       try {
         const { data: tasksData } = await supabase.from('tasks').select('*').eq('user_id', userName).eq('done', false).order('created_at', { ascending: false }).limit(3);
         if (tasksData) setTodayTasks(tasksData);
+      } catch (err) {
+        console.error("Lỗi kết nối:", err);
+      }
+    };
+    fetchTasks();
+  }, [userName]);
 
+  useEffect(() => {
+    // 🔥 Tách riêng fetch tools_registry + poll định kỳ, để badge "Cập nhật" tự hiện
+    // khi bump version trên Supabase mà không cần tắt hẳn app rồi mở lại.
+    const fetchToolsRegistry = async () => {
+      try {
         const { data: registryData, error: regError } = await supabase.from('tools_registry').select('*');
-        if (regError) console.error("Lỗi tải tools registry:", regError);
-        
+        if (regError) { console.error("Lỗi tải tools registry:", regError); return; }
+
         if (registryData) {
           const savedLocal = JSON.parse(localStorage.getItem('parame_local_tools') || '{}');
-          const mergedTools = registryData.map(dbTool => {
-            const localData = savedLocal[dbTool.id] || {};
-            return {
-              ...dbTool,
-              localVersion: localData.version || null, 
-              path: localData.path || null,           
-              status: 'stopped',
-              currentTaskId: null
-            };
+          setTools(prev => {
+            const prevById = new Map(prev.map(t => [t.id, t]));
+            return registryData.map(dbTool => {
+              const localData = savedLocal[dbTool.id] || {};
+              const existing = prevById.get(dbTool.id);
+              return {
+                ...dbTool,
+                localVersion: localData.version || null,
+                path: localData.path || null,
+                // Giữ nguyên trạng thái đang chạy nếu có, tránh poll đè mất status khi tool đang chạy
+                status: existing?.status || 'stopped',
+                currentTaskId: existing?.currentTaskId || null
+              };
+            });
           });
-          setTools(mergedTools);
         }
       } catch (err) {
         console.error("Lỗi kết nối:", err);
       }
     };
-    fetchData();
+    fetchToolsRegistry();
+    const intervalId = setInterval(fetchToolsRegistry, 2 * 60 * 1000);
+    return () => clearInterval(intervalId);
   }, [userName]);
 
   const toggleTool = async (toolId, customParams = null) => {

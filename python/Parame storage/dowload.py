@@ -125,8 +125,6 @@ def run_download_process(platforms_to_download=None):
             "is_success": True
         }
 
-    os.makedirs(config.input_dir, exist_ok=True)
-
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--window-size=1920,1080")
@@ -165,7 +163,7 @@ def run_download_process(platforms_to_download=None):
             f"Tổng số Client (CID) cần tải: {total}\n"
             f"Số file hoàn thành: {completed_count}\n"
             f"Tỷ lệ thành công: {success_rate}\n\n"
-            f"Dữ liệu đã được giải nén trực tiếp vào Input Folder."
+            f"Dữ liệu đã được giải nén vào Download Folder."
         )
         return {"title": title, "message": message, "is_success": is_success}
 

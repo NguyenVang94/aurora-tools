@@ -4,6 +4,7 @@ import pandas as pd
 import logging
 from datetime import datetime
 import config # Import file config
+from utils import glob_multi
 
 # --- CÁC HÀM XỬ LÝ CHO TWITTER ---
 
@@ -111,13 +112,15 @@ def tw_process_excel_files(directory, pattern=config.TW_SOURCE_PATTERN, extensio
 
     return all_data
 
-def tw_process_csv_files(directory, pattern=config.TW_CSV_PATTERN, extension=config.TW_CSV_EXTENSION):
-    """Process CSV files containing the pattern in their names for mapping for Twitter."""
-    search_pattern = os.path.join(directory, f"*{pattern}*{extension}")
-    csv_files = [f for f in glob.glob(search_pattern) if not os.path.basename(f).startswith("~$")]
-    
+def tw_process_csv_files(directories, pattern=config.TW_CSV_PATTERN, extension=config.TW_CSV_EXTENSION):
+    """Process CSV files containing the pattern in their names for mapping for Twitter.
+    Tìm trong nhiều thư mục (Input Folder + Download Folder) vì file 掲載内容 có thể do
+    user tự đặt thủ công hoặc vừa được tool tải về."""
+    search_glob_pattern = f"*{pattern}*{extension}"
+    csv_files = [f for f in glob_multi(directories, search_glob_pattern) if not os.path.basename(f).startswith("~$")]
+
     if not csv_files:
-        logging.warning(f"Can't find file  '{pattern}' with '{extension}' in {directory}")
+        logging.warning(f"Can't find file '{pattern}' with '{extension}' in {directories}")
         return []
     
     mapping_data = []
@@ -170,8 +173,8 @@ def tw_process_files(directory, master_path, output_dir, cid_map):
     """Process Excel, CSV, and Master files to generate output DataFrame for Twitter."""
     current_date = datetime.now().strftime("%y%m%d")
     tw_setup_directories(directory, master_path, output_dir)
-    
-    mapping_data = tw_process_csv_files(directory)
+
+    mapping_data = tw_process_csv_files([directory, config.download_dir])
     excel_data = tw_process_excel_files(directory)
     
     complete_output_data = []

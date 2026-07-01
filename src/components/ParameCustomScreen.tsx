@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { useTheme, glassPanel, textPrimary, textSecondary } from '../utils';
 import { open } from '@tauri-apps/plugin-dialog';
-import { invoke } from '@tauri-apps/api/core';
 
 // Component Toggle Switch tự chế siêu đẹp
 const Toggle = ({ checked, onChange, color }) => (
@@ -27,7 +26,7 @@ export default function ParameCustomScreen({ tool, logs, onBack, onToggle, onCle
   
   // 🔥 LẤY DATA TỪ LOCALSTORAGE
   const [inputFolder, setInputFolder] = useState(() => localStorage.getItem(`parame_in_${tool.id}`) || '');
-  const [outputFolder, setOutputFolder] = useState(() => localStorage.getItem(`parame_out_${tool.id}`) || '');
+  const [masterFolder, setMasterFolder] = useState(() => localStorage.getItem(`parame_master_${tool.id}`) || '');
   
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem(`parame_settings_${tool.id}`);
@@ -44,7 +43,7 @@ export default function ParameCustomScreen({ tool, logs, onBack, onToggle, onCle
 
   // 🔥 LƯU VÀO LOCALSTORAGE MỖI KHI CÓ THAY ĐỔI
   useEffect(() => { localStorage.setItem(`parame_in_${tool.id}`, inputFolder); }, [inputFolder]);
-  useEffect(() => { localStorage.setItem(`parame_out_${tool.id}`, outputFolder); }, [outputFolder]);
+  useEffect(() => { localStorage.setItem(`parame_master_${tool.id}`, masterFolder); }, [masterFolder]);
   useEffect(() => { localStorage.setItem(`parame_settings_${tool.id}`, JSON.stringify(settings)); }, [settings]);
 
   useEffect(() => {
@@ -57,7 +56,7 @@ export default function ParameCustomScreen({ tool, logs, onBack, onToggle, onCle
       const selected = await open({ directory: true, multiple: false });
       if (selected && !Array.isArray(selected)) {
         if (isInput) setInputFolder(selected);
-        else setOutputFolder(selected);
+        else setMasterFolder(selected);
       }
     } catch (err) { console.error("Lỗi chọn folder:", err); }
   };
@@ -68,28 +67,16 @@ export default function ParameCustomScreen({ tool, logs, onBack, onToggle, onCle
   };
 
   const handleRun = () => {
-    if (!inputFolder || !outputFolder) {
-      alert("⚠️ Vui lòng chọn đủ cả Input và Output Folder!");
+    if (!inputFolder || !masterFolder) {
+      alert("⚠️ Vui lòng chọn đủ cả Input và Master Folder!");
       return;
     }
-    onToggle(tool.id, { 
+    onToggle(tool.id, {
       action: "run_main",
       input_path: inputFolder,
-      output_path: outputFolder,
-      settings: settings 
+      master_path: masterFolder,
+      settings: settings
     });
-  };
-
-  const handleOpenMasterFolder = async () => {
-    if (!tool.path) {
-      alert("⚠️ Tool chưa được tải về, chưa xác định được vị trí Master Folder.");
-      return;
-    }
-    try {
-      await invoke('open_tool_master_folder', { exePath: tool.path });
-    } catch (err) {
-      alert("Lỗi mở Master Folder: " + err);
-    }
   };
 
   const PlatformRow = ({ name, platformKey, colorClass }) => (
@@ -123,13 +110,6 @@ export default function ParameCustomScreen({ tool, logs, onBack, onToggle, onCle
             <p className={`text-sm ${textSecondary(isDark)}`}>Công cụ tự động hóa toàn diện.</p>
           </div>
         </div>
-
-        <button
-          onClick={handleOpenMasterFolder}
-          className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 hover:scale-105 ${isDark ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 'bg-cyan-50 text-cyan-600 border-cyan-200'}`}
-        >
-          <FolderCog className="w-4 h-4" /> Mở Master Folder
-        </button>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-5 flex-1 min-h-0">
@@ -168,14 +148,14 @@ export default function ParameCustomScreen({ tool, logs, onBack, onToggle, onCle
                 </div>
               </div>
 
-              <div 
+              <div
                 onClick={() => handleSelectFolder(false)}
                 className={`flex-1 flex items-center gap-2 p-3 rounded-xl border border-dashed transition-all cursor-pointer ${isRunning ? 'opacity-50' : 'hover:bg-cyan-500/10 hover:border-cyan-500/30'} ${isDark ? 'border-white/20' : 'border-slate-300'}`}
               >
-                <FolderOpen className={`w-5 h-5 ${textSecondary(isDark)}`} />
+                <FolderCog className={`w-5 h-5 ${textSecondary(isDark)}`} />
                 <div className="overflow-hidden">
-                  <p className={`text-xs font-bold ${textPrimary(isDark)}`}>Output Folder</p>
-                  <p className={`text-[10px] truncate ${textSecondary(isDark)}`}>{outputFolder || 'Nhấn để chọn...'}</p>
+                  <p className={`text-xs font-bold ${textPrimary(isDark)}`}>Master Folder</p>
+                  <p className={`text-[10px] truncate ${textSecondary(isDark)}`}>{masterFolder || 'Nhấn để chọn...'}</p>
                 </div>
               </div>
             </div>
@@ -187,7 +167,7 @@ export default function ParameCustomScreen({ tool, logs, onBack, onToggle, onCle
                   <Square className="w-4 h-4" /> Dừng tiến trình
                 </button>
               ) : (
-                <button onClick={handleRun} className={`w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] ${inputFolder && outputFolder ? (isDark ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-cyan-500/25' : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-cyan-500/25') : (isDark ? 'bg-white/5 text-white/30 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed')}`}>
+                <button onClick={handleRun} className={`w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] ${inputFolder && masterFolder ? (isDark ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-cyan-500/25' : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-cyan-500/25') : (isDark ? 'bg-white/5 text-white/30 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed')}`}>
                   <Play className="w-4 h-4" /> 実行 (Thực thi)
                 </button>
               )}

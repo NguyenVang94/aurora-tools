@@ -13,9 +13,9 @@ dist-ssr
 *.local
 
 # PyInstaller build artifacts for internal tools
-python/build/
-python/dist/
-python/*.spec
+python/**/build/
+python/**/dist/
+python/**/*.spec
 __pycache__/
 
 # Sensitive business/user data for internal tools (credentials, client mappings, logs)

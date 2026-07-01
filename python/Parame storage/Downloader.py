@@ -111,9 +111,12 @@ def perform_download(driver, media_id, client_id):
 
         logging.info("Bắt đầu vòng lặp tìm và tải file...")
         loop_timeout = time.time() + 600
-        
-        # Dọn dẹp thư mục input trước mỗi lần download để đảm bảo chỉ có file mới nhất
-        temp_download_dir = os.path.join(config.input_dir, f"temp_{client_id}_{media_id}")
+
+        # Download Folder chỉ được tạo khi thực sự có file cần tải (ở đây)
+        os.makedirs(config.download_dir, exist_ok=True)
+
+        # Dọn dẹp thư mục tạm trước mỗi lần download để đảm bảo chỉ có file mới nhất
+        temp_download_dir = os.path.join(config.download_dir, f"temp_{client_id}_{media_id}")
         if os.path.exists(temp_download_dir):
             shutil.rmtree(temp_download_dir)
         os.makedirs(temp_download_dir)
@@ -154,12 +157,12 @@ def perform_download(driver, media_id, client_id):
                         try:
                             logging.info(f"Bắt đầu giải nén file: {zip_path}")
                             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                                # Giải nén và chuyển file vào thư mục input chính
+                                # Giải nén và chuyển file vào Download Folder
                                 for file_info in zip_ref.infolist():
                                     # Tránh giải nén các file hệ thống của macOS
                                     if not file_info.filename.startswith('__MACOSX/'):
-                                        zip_ref.extract(file_info, config.input_dir)
-                            logging.info(f"✅ Giải nén thành công vào thư mục: {config.input_dir}")
+                                        zip_ref.extract(file_info, config.download_dir)
+                            logging.info(f"✅ Giải nén thành công vào thư mục: {config.download_dir}")
                         except Exception as e:
                             logging.error(f"❌ Lỗi trong quá trình giải nén: {e}")
                         finally:

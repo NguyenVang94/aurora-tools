@@ -26,9 +26,6 @@ def main():
     print("----> PARAME STORAGE AUTOMATION <----", flush=True)
     print("="*60, flush=True)
 
-    logging.info(f"📁 Master folder: {config.master_dir}")
-    logging.info("   (Copy Master.xlsx, User.xlsx, Consulting.xlsx, Template2.xlsx vào đây nếu chưa có)")
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, help="JSON config từ React truyền xuống", default="{}")
     args = parser.parse_args()
@@ -39,17 +36,21 @@ def main():
         logging.error(f"❌ Lỗi giải mã tham số từ UI: {e}")
         return
 
-    # 1. CẬP NHẬT ĐƯỜNG DẪN INPUT/OUTPUT NẾU CÓ
+    # 1. THIẾT LẬP INPUT/MASTER FOLDER (Output/Download tự suy ra bên trong configure_paths)
     input_path = data.get("input_path", "")
-    output_path = data.get("output_path", "")
-    
-    if input_path and os.path.exists(input_path):
-        config.input_dir = input_path
-        logging.info(f"📂 Đã cập nhật Input Folder: {input_path}")
-    
-    if output_path and os.path.exists(output_path):
-        config.output_dir = output_path
-        logging.info(f"📂 Đã cập nhật Output Folder: {output_path}")
+    master_path = data.get("master_path", "")
+
+    if not input_path or not os.path.exists(input_path):
+        logging.error(f"❌ Input Folder không hợp lệ hoặc chưa tồn tại: {input_path}")
+        return
+    if not master_path or not os.path.exists(master_path):
+        logging.error(f"❌ Master Folder không hợp lệ hoặc chưa tồn tại: {master_path}")
+        return
+
+    config.configure_paths(input_path, master_path)
+    logging.info(f"📂 Input Folder: {config.input_dir}")
+    logging.info(f"📂 Master Folder: {config.master_dir}")
+    logging.info(f"📂 Output Folder: {config.output_dir}")
 
     # 2. LẤY SETTING BẬT/TẮT CỦA TỪNG PLATFORM
     settings = data.get("settings", {})

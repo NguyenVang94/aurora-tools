@@ -1,15 +1,16 @@
 import os
-import glob
 import pandas as pd
 import logging
 import config
+from utils import glob_multi
 
 # CÁC HÀM XỬ LÝ CHO FACEBOOK
 
 def process_facebook_data(input_dir, output_dir, cid_map):
-    search_path = os.path.join(input_dir, f"*{config.FB_CSV_PATTERN}*{config.FB_CSV_EXTENSION}")
-    fb_files = glob.glob(search_path)
-    
+    # Tìm ở cả Input Folder (user tự đặt thủ công) lẫn Download Folder (vừa tải về)
+    search_pattern = f"*{config.FB_CSV_PATTERN}*{config.FB_CSV_EXTENSION}"
+    fb_files = glob_multi([input_dir, config.download_dir], search_pattern)
+
     if not fb_files:
         logging.info("FacebookのエクスポートCSVファイルが見つかりません。")
         return None

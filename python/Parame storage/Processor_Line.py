@@ -3,6 +3,7 @@ import pandas as pd
 import logging
 import openpyxl
 import config # Import file config
+from utils import glob_multi
 
 # --- CÁC HÀM XỬ LÝ CHO LINE ---
 
@@ -92,13 +93,13 @@ def line_process_files():
     line_check_columns(df_master, config.LINE_MASTER_REQUIRED_COLS, "sheet 'Sheet1' của Master.xlsx")
 
     logging.info("\nFind file Master2:")
-    master2_files = [f for f in os.listdir(config.input_dir) if 'campaign-adgroup-ad' in f.lower() and f.endswith('.csv')]
+    # Tìm ở cả Input Folder (user tự đặt thủ công) lẫn Download Folder (vừa tải về)
+    master2_files = glob_multi([config.input_dir, config.download_dir], '*campaign-adgroup-ad*.csv')
     if not master2_files:
-        raise SystemExit(f"Can't find file .csv  'campaign-adgroup-ad' in  {config.input_dir}")
-    
+        raise SystemExit(f"Can't find file .csv  'campaign-adgroup-ad' in  {config.input_dir} hoặc {config.download_dir}")
+
     df_master2_list = []
-    for file in master2_files:
-        master2_file = os.path.join(config.input_dir, file)
+    for master2_file in master2_files:
         df = line_read_csv_file(master2_file)
         if df is not None:
             df_master2_list.append(df)
