@@ -12,7 +12,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [isDark, setIsDark] = useState(() => {
     const savedTheme = localStorage.getItem('app-theme');
     if (savedTheme) {
-      return savedTheme === 'light';
+      return savedTheme === 'dark';
     }
     return false; // Mặc định là light mode
   });
