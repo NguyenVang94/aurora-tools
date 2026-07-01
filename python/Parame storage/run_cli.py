@@ -59,7 +59,7 @@ def main():
     if platforms_to_download:
         logging.info("\n⬇️ BẮT ĐẦU TÁC VỤ: DOWNLOAD...")
         try:
-            dowload.run_download_process()
+            dowload.run_download_process(platforms_to_download)
         except Exception as e:
             logging.error(f"❌ Lỗi khi Download: {e}")
     else:

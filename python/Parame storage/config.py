@@ -17,7 +17,6 @@ input_dir = os.path.join(base_dir, 'input')
 source_dir = os.path.join(base_dir, 'input')
 master_dir = os.path.join(base_dir, 'master')
 output_dir = os.path.join(base_dir, 'output')
-DOWNLOADS_DIR = os.path.join(base_dir, 'downloads')
 
 # HẰNG SỐ TW (Twitter)
 TW_SOURCE_PATTERN = "入稿"
@@ -76,7 +75,6 @@ FB_OUTPUT_COLUMNS = [
 
 # User
 user_file = os.path.join(master_dir, 'User.xlsx')
-consulting_file = os.path.join(master_dir, 'Consulting.xlsx')
 master_folder = master_dir
 
 URL_TARGET = "https://ca-rpa.cloud/en/parameter-storage/manager"
@@ -84,10 +82,6 @@ URL_LOGIN = "https://ca-rpa.cloud/login"
 URL_BASE = "https://ca-rpa.cloud/"
 COOKIE_FILENAME = "cloud_cookies.json"
 cookie_path = os.path.join(base_dir, COOKIE_FILENAME)
-
-# --- FILE CONSULTING ---
-CONSULTING_EXCEL_PATH = os.path.join(master_dir, 'Consulting.xlsx')
-CONSULTING_COOKIE_PATH = base_dir
 
 # Template2
 TEMPLATE2_FILE = os.path.join(master_dir, 'Template2.xlsx')
