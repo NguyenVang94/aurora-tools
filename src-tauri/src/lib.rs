@@ -106,6 +106,22 @@ fn is_process_running(image_name: &str) -> bool {
         .unwrap_or(false)
 }
 
+// Mở (và tự tạo nếu chưa có) thư mục "master" nằm cạnh file .exe của tool trong
+// Explorer, để user copy Master.xlsx/User.xlsx/Consulting.xlsx/Template2.xlsx vào.
+#[tauri::command]
+fn open_tool_master_folder(exe_path: String) -> Result<(), String> {
+    let master_dir = std::path::Path::new(&exe_path)
+        .parent()
+        .ok_or("Không xác định được thư mục chứa tool")?
+        .join("master");
+    std::fs::create_dir_all(&master_dir).map_err(|e| e.to_string())?;
+    Command::new("explorer")
+        .arg(&master_dir)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // Lệnh này nhận ID của tool và URL tải xuống từ React
 #[tauri::command]
 async fn download_tool(
@@ -567,6 +583,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             download_tool,
+            open_tool_master_folder,
             run_python_script,
             run_executable,
             run_executable_with_args,

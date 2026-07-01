@@ -16,6 +16,10 @@ dist-ssr
 python/build/
 python/dist/
 python/*.spec
+__pycache__/
+
+# Sensitive business/user data for internal tools (credentials, client mappings, logs)
+python/Parame storage/master/
 
 # Secrets
 .env

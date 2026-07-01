@@ -1,12 +1,13 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  ChevronLeft, Play, Square, Terminal, 
-  Trash2, FolderOpen, ShieldAlert
+import {
+  ChevronLeft, Play, Square, Terminal,
+  Trash2, FolderOpen, FolderCog
 } from 'lucide-react';
 import { useTheme, glassPanel, textPrimary, textSecondary } from '../utils';
 import { open } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
 
 // Component Toggle Switch tự chế siêu đẹp
 const Toggle = ({ checked, onChange, color }) => (
@@ -79,8 +80,16 @@ export default function ParameCustomScreen({ tool, logs, onBack, onToggle, onCle
     });
   };
 
-  const handleCheckId = () => {
-    onToggle(tool.id, { action: "check_id" });
+  const handleOpenMasterFolder = async () => {
+    if (!tool.path) {
+      alert("⚠️ Tool chưa được tải về, chưa xác định được vị trí Master Folder.");
+      return;
+    }
+    try {
+      await invoke('open_tool_master_folder', { exePath: tool.path });
+    } catch (err) {
+      alert("Lỗi mở Master Folder: " + err);
+    }
   };
 
   const PlatformRow = ({ name, platformKey, colorClass }) => (
@@ -115,11 +124,11 @@ export default function ParameCustomScreen({ tool, logs, onBack, onToggle, onCle
           </div>
         </div>
 
-        <button 
-          disabled={isRunning} onClick={handleCheckId}
-          className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 ${isRunning ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-600 border-amber-200'}`}
+        <button
+          onClick={handleOpenMasterFolder}
+          className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 hover:scale-105 ${isDark ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 'bg-cyan-50 text-cyan-600 border-cyan-200'}`}
         >
-          <ShieldAlert className="w-4 h-4" /> Báo cáo lỗi Account ID
+          <FolderCog className="w-4 h-4" /> Mở Master Folder
         </button>
       </div>
 
